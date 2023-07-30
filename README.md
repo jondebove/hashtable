@@ -1,4 +1,4 @@
-# hashtable - implementations of hash tables.
+# hashtable
 
 The `"hashtable.h"` header file provides a set of macros that define and
 operate on the following data structures:
@@ -10,11 +10,11 @@ Both structures support the following functionality:
 
 - O(1) insertion of a new entry.
 - O(1) search for an entry.
-- O(1) Removal of an entry.
+- O(1) removal of an entry.
 - Forward traversal through the hash table.
 
-Both use internally the lists implemented in the "sys/queue.h" BSD
-header file (respectively SLIST and LIST).
+Both use internally the lists implementations of the "sys/queue.h" BSD
+header file.
 
 ## Interface
 
@@ -56,27 +56,27 @@ header file (respectively SLIST and LIST).
 
 ## Details
 
-In the macros definitions, `TYPE` is the name of a user-defined
-structure, that must contain a fild of type `HASH_ENTRY`, named `NAME`.
+In the macro definitions, `TYPE` is the name of a user-defined
+structure, that must contain a field of type `HASH_ENTRY`, named `NAME`.
 The argument `TABLENAME` is the name of a user-defined structure that
 must be declared using the macro `HASH_TABLE()`.
 
 ### Creation
 
 The macros do not allocate memory for the entries or the hash table.
-The user must handle the memory by himself and pass a memory buffer
-using the macro `HASH_INIT()`.
+The user must handle the memory (alloc and free) and provide a memory
+buffer for the hash table using the macro `HASH_INIT()`.
 
-To change the size of the hash table, a new one shall shall be created
-and the entries moved with the macro `HASH_MOVE()`.
+To change the size of the hash table, a new one shall be created and
+the entries moved with the macro `HASH_MOVE()`.
 
 ### Insertion
 
 The macro `HASH_INSERT()` inserts an element associated with `hash`.
 It does not test if the element is already inserted and allows multiple
 elements with same key.
-In case this feature is unwanted, the user may search the element in
-prior insertion and do proper action.
+In case this feature is unwanted, the user may search the element prior
+to insertion and take proper action.
 
 ### Traversal
 
@@ -93,7 +93,7 @@ Testing if the key matchs is left to the user.
 `HASH_REMOVE()` removes the element from the hash table.
 
 `SHASH_REMOVE()` is the only `SHASH` macro with an interface different
-from the `HASH` macros.
+from the `HASH` macro.
 Due to the usage of singly-linked lists, it needs two additional
 arguments: the hash table and the entry type.
 
