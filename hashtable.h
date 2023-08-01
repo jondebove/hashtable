@@ -28,7 +28,22 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 
+#include <limits.h>
 #include <sys/queue.h>
+
+#if UINT_MAX == 0xffffU
+#	define HASH_MULT 0x9e3bU
+#	define HASH_BITS 16U
+#elif UINT_MAX == 0xffffffffU
+#	define HASH_MULT 0x9e3779b1U
+#	define HASH_BITS 32U
+#elif UINT_MAX == 0xffffffffffffffffU
+#	define HASH_MULT 0x9e3779b97f4a7c55U
+#	define HASH_BITS 64U
+#else
+#	define HASH_MULT 1U
+#	define HASH_BITS 0U
+#endif
 
 /*
  * Hash table definitions.
@@ -37,6 +52,7 @@
 struct name {								\
 	LIST_HEAD(, type) *ht_table;					\
 	unsigned int ht_size;						\
+	unsigned char ht_shift;						\
 }
 
 #define HASH_ENTRY(type)						\
@@ -51,30 +67,34 @@ struct {								\
 #define HASH_INIT(htab, buffer, size) do {				\
 	(htab)->ht_table = (void *)(buffer);				\
 	(htab)->ht_size = (size) / sizeof(*(htab)->ht_table);		\
-	unsigned int h_idx;						\
-	for (h_idx = 0; h_idx < (htab)->ht_size; h_idx++) {		\
-		LIST_INIT(&(htab)->ht_table[h_idx]);			\
+	for ((htab)->ht_shift = 0; HASH_BITS > 0 &&			\
+			(1U << (htab)->ht_shift) < (htab)->ht_size;	\
+			(htab)->ht_shift++);				\
+	(htab)->ht_shift = HASH_BITS - (htab)->ht_shift;		\
+	unsigned int h__idx;						\
+	for (h__idx = 0; h__idx < (htab)->ht_size; h__idx++) {		\
+		LIST_INIT(&(htab)->ht_table[h__idx]);			\
 	}								\
 } while (0)
 
 #define HASH_INDEX(htab, hash)						\
-	(((hash) * 0xb504f32dU) % ((htab)->ht_size))
+	((((hash) * HASH_MULT) >> (htab)->ht_shift) % (htab)->ht_size)
 
 #define HASH_MOVE(hdst, hsrc, type, field) do {				\
-	unsigned int h_idx;						\
-	struct type *h_elm, *h_nxt;					\
-	HASH_FOREACH_SAFE(h_elm, h_idx, (hsrc), field, h_nxt) {		\
-		HASH_REMOVE(h_elm, field);				\
-		HASH_INSERT((hdst), h_elm,				\
-				h_elm->field.he_hash, field);		\
+	unsigned int h__idx;						\
+	struct type *h__elm, *h__nxt;					\
+	HASH_FOREACH_SAFE(h__elm, h__idx, (hsrc), field, h__nxt) {	\
+		HASH_REMOVE(h__elm, field);				\
+		HASH_INSERT((hdst), h__elm,				\
+				h__elm->field.he_hash, field);		\
 	}								\
 } while (0)
 
-#define	HASH_INSERT(htab, elm, hash, field) do {			\
+#define HASH_INSERT(htab, elm, hash, field) do {			\
 	(elm)->field.he_hash = (hash);					\
-	unsigned int h_idx;						\
-	h_idx = HASH_INDEX((htab), (elm)->field.he_hash);		\
-	LIST_INSERT_HEAD(&(htab)->ht_table[h_idx],			\
+	unsigned int h__idx;						\
+	h__idx = HASH_INDEX((htab), (elm)->field.he_hash);		\
+	LIST_INSERT_HEAD(&(htab)->ht_table[h__idx],			\
 			(elm), field.he_list);				\
 } while (0)
 
@@ -85,37 +105,37 @@ struct {								\
 /*
  * Hash table for loops.
  */
-#define	HASH_FOREACH(var, idx, htab, field)				\
+#define HASH_FOREACH(var, idx, htab, field)				\
 	for ((idx) = 0;	(idx) < (htab)->ht_size; (idx)++)		\
 	LIST_FOREACH((var), &(htab)->ht_table[idx], field.he_list)
 
-#define	HASH_SEARCH_FOREACH(var, hash, htab, field)			\
-	for (unsigned int h_hash = (hash),				\
-			h_idx = HASH_INDEX((htab), h_hash),		\
-			h_once = 1; h_once; h_once--)			\
-		LIST_FOREACH((var), &(htab)->ht_table[h_idx],		\
+#define HASH_SEARCH_FOREACH(var, hash, htab, field)			\
+	for (unsigned int h__hash = (hash),				\
+			h__idx = HASH_INDEX((htab), h__hash),		\
+			h__once = 1; h__once; h__once--)		\
+		LIST_FOREACH((var), &(htab)->ht_table[h__idx],		\
 				field.he_list)				\
-			if (h_hash == (var)->field.he_hash)
+			if (h__hash == (var)->field.he_hash)
 
 #ifndef LIST_FOREACH_SAFE
-#define	LIST_FOREACH_SAFE(var, htab, field, nxt)			\
-	for ((var) = LIST_FIRST((htab)); (var) && 			\
+#define LIST_FOREACH_SAFE(var, head, field, nxt)			\
+	for ((var) = LIST_FIRST((head)); (var) && 			\
 			((nxt) = LIST_NEXT((var), field), (var));	\
 			(var) = (nxt))
 #endif /* LIST_FOREACH_SAFE */
 
-#define	HASH_FOREACH_SAFE(var, idx, htab, field, nxt)			\
+#define HASH_FOREACH_SAFE(var, idx, htab, field, nxt)			\
 	for ((idx) = 0; (idx) < (htab)->ht_size; (idx)++)		\
 		LIST_FOREACH_SAFE((var), &(htab)->ht_table[idx],	\
 				field.he_list, (nxt))
 
-#define	HASH_SEARCH_FOREACH_SAFE(var, hash, htab, field, nxt)		\
-	for (unsigned int h_hash = (hash),				\
-			h_idx = HASH_INDEX((htab), h_hash),		\
-			h_once = 1; h_once; h_once--)			\
-		LIST_FOREACH_SAFE((var), &(htab)->ht_table[h_idx],	\
+#define HASH_SEARCH_FOREACH_SAFE(var, hash, htab, field, nxt)		\
+	for (unsigned int h__hash = (hash),				\
+			h__idx = HASH_INDEX((htab), h__hash),		\
+			h__once = 1; h__once; h__once--)		\
+		LIST_FOREACH_SAFE((var), &(htab)->ht_table[h__idx],	\
 				field.he_list, (nxt))			\
-			if (h_hash == (var)->field.he_hash)
+			if (h__hash == (var)->field.he_hash)
 
 /*
  * Hash table access methods.
@@ -124,16 +144,7 @@ struct {								\
 
 #define HASH_SIZE(htab) ((htab)->ht_size)
 
-#define HASH_SIZEOF(htab) ((htab)->ht_size * sizeof(*(htab)->ht_table))
-
 #define HASH_HASH(elm, field) ((elm)->field.he_hash)
-
-#define HASH_EMPTY(empty, htab) do {					\
-	for ((empty) = 0; (empty) < (htab)->ht_size; (empty)++)		\
-		if (!LIST_EMPTY(&(htab)->ht_table[empty]))		\
-			break;						\
-	(empty) = (empty) == (htab)->ht_size;				\
-} while (0)
 
 /*
  * Simple Hash table definitions.
@@ -142,6 +153,7 @@ struct {								\
 struct name {								\
 	SLIST_HEAD(, type) *sht_table;					\
 	unsigned int sht_size;						\
+	unsigned char sht_shift;					\
 }
 
 #define SHASH_ENTRY(type)						\
@@ -151,96 +163,91 @@ struct {								\
 }
 
 /*
- * Hash table functions.
+ * Simple hash table functions.
  */
 #define SHASH_INIT(htab, buffer, size) do {				\
 	(htab)->sht_table = (void *)(buffer);				\
 	(htab)->sht_size = (size) / sizeof(*(htab)->sht_table);		\
-	unsigned int sh_idx;						\
-	for (sh_idx = 0; sh_idx < (htab)->sht_size; sh_idx++) {		\
-		SLIST_INIT(&(htab)->sht_table[sh_idx]);			\
+	for ((htab)->sht_shift = 0; HASH_BITS > 0 &&			\
+			(1U << (htab)->sht_shift) < (htab)->sht_size;	\
+			(htab)->sht_shift++);				\
+	(htab)->sht_shift = HASH_BITS - (htab)->sht_shift;		\
+	unsigned int sh__idx;						\
+	for (sh__idx = 0; sh__idx < (htab)->sht_size; sh__idx++) {	\
+		SLIST_INIT(&(htab)->sht_table[sh__idx]);		\
 	}								\
 } while (0)
 
 #define SHASH_INDEX(htab, hash)						\
-	(((hash) * 0xb504f32dU) % ((htab)->sht_size))
+	((((hash) * HASH_MULT) >> (htab)->sht_shift) % (htab)->sht_size)
 
 #define SHASH_MOVE(hdst, hsrc, type, field) do {			\
-	unsigned int sh_idx;						\
-	struct type *sh_elm, *sh_nxt;					\
-	SHASH_FOREACH_SAFE(sh_elm, sh_idx, (hsrc), field, sh_nxt) {	\
-		SHASH_REMOVE((hsrc), sh_elm, type, field);		\
-		SHASH_INSERT((hdst), sh_elm,				\
-				sh_elm->field.she_hash, field);		\
+	unsigned int sh__idx;						\
+	struct type *sh__elm, *sh__nxt;					\
+	SHASH_FOREACH_SAFE(sh__elm, sh__idx, (hsrc), field, sh__nxt) {	\
+		SHASH_REMOVE((hsrc), sh__elm, type, field);		\
+		SHASH_INSERT((hdst), sh__elm,				\
+				sh__elm->field.she_hash, field);	\
 	}								\
 } while (0)
 
-#define	SHASH_INSERT(htab, elm, hash, field) do {			\
+#define SHASH_INSERT(htab, elm, hash, field) do {			\
 	(elm)->field.she_hash = (hash);					\
-	unsigned int sh_idx;						\
-	sh_idx = SHASH_INDEX((htab), (elm)->field.she_hash);		\
-	SLIST_INSERT_HEAD(&(htab)->sht_table[sh_idx],			\
+	unsigned int sh__idx;						\
+	sh__idx = SHASH_INDEX((htab), (elm)->field.she_hash);		\
+	SLIST_INSERT_HEAD(&(htab)->sht_table[sh__idx],			\
 			(elm), field.she_list);				\
 } while (0)
 
 #define SHASH_REMOVE(htab, elm, type, field) do {			\
-	unsigned int sh_idx;						\
-	sh_idx = SHASH_INDEX((htab), (elm)->field.she_hash);		\
-	SLIST_REMOVE(&(htab)->sht_table[sh_idx],			\
+	unsigned int sh__idx;						\
+	sh__idx = SHASH_INDEX((htab), (elm)->field.she_hash);		\
+	SLIST_REMOVE(&(htab)->sht_table[sh__idx],			\
 				(elm), type, field.she_list);		\
 } while (0)
 
 /*
  * Simple Hash table for loops.
  */
-#define	SHASH_FOREACH(var, idx, htab, field)				\
+#define SHASH_FOREACH(var, idx, htab, field)				\
 	for ((idx) = 0;	(idx) < (htab)->sht_size; (idx)++)		\
 	SLIST_FOREACH((var), &(htab)->sht_table[idx], field.she_list)
 
-#define	SHASH_SEARCH_FOREACH(var, hash, htab, field)			\
-	for (unsigned int sh_hash = (hash),				\
-			sh_idx = SHASH_INDEX((htab), sh_hash),		\
-			sh_once = 1; sh_once; sh_once--)		\
-		SLIST_FOREACH((var), &(htab)->sht_table[sh_idx],	\
+#define SHASH_SEARCH_FOREACH(var, hash, htab, field)			\
+	for (unsigned int sh__hash = (hash),				\
+			sh__idx = SHASH_INDEX((htab), sh__hash),	\
+			sh__once = 1; sh__once; sh__once--)		\
+		SLIST_FOREACH((var), &(htab)->sht_table[sh__idx],	\
 				field.she_list)				\
-			if (sh_hash == (var)->field.she_hash)
+			if (sh__hash == (var)->field.she_hash)
 
 #ifndef SLIST_FOREACH_SAFE
-#define	SLIST_FOREACH_SAFE(var, htab, field, nxt)			\
-	for ((var) = SLIST_FIRST((htab)); (var) && 			\
+#define SLIST_FOREACH_SAFE(var, head, field, nxt)			\
+	for ((var) = SLIST_FIRST((head)); (var) && 			\
 			((nxt) = SLIST_NEXT((var), field), (var));	\
 			(var) = (nxt))
 #endif /* SLIST_FOREACH_SAFE */
 
-#define	SHASH_FOREACH_SAFE(var, idx, htab, field, nxt)			\
+#define SHASH_FOREACH_SAFE(var, idx, htab, field, nxt)			\
 	for ((idx) = 0; (idx) < (htab)->sht_size; (idx)++)		\
 		SLIST_FOREACH_SAFE((var), &(htab)->sht_table[idx],	\
 				field.she_list, (nxt))
 
-#define	SHASH_SEARCH_FOREACH_SAFE(var, hash, htab, field, nxt)		\
-	for (unsigned int sh_hash = (hash),				\
-			sh_idx = SHASH_INDEX((htab), sh_hash),		\
-			sh_once = 1; sh_once; sh_once--)		\
-		SLIST_FOREACH_SAFE((var), &(htab)->sht_table[sh_idx],	\
+#define SHASH_SEARCH_FOREACH_SAFE(var, hash, htab, field, nxt)		\
+	for (unsigned int sh__hash = (hash),				\
+			sh__idx = SHASH_INDEX((htab), sh__hash),	\
+			sh__once = 1; sh__once; sh__once--)		\
+		SLIST_FOREACH_SAFE((var), &(htab)->sht_table[sh__idx],	\
 				field.she_list, (nxt))			\
-			if (sh_hash == (var)->field.she_hash)
+			if (sh__hash == (var)->field.she_hash)
 
 /*
- * Hash table access methods.
+ * Simple hash table access methods.
  */
 #define SHASH_BUFFER(htab) ((void *)(htab)->sht_table)
 
 #define SHASH_SIZE(htab) ((htab)->sht_size)
 
-#define SHASH_SIZEOF(htab) ((htab)->sht_size * sizeof(*(htab)->sht_table))
-
 #define SHASH_HASH(elm, field) ((elm)->field.she_hash)
-
-#define SHASH_EMPTY(empty, htab) do {					\
-	for ((empty) = 0; (empty) < (htab)->sht_size; (empty)++)	\
-		if (!SLIST_EMPTY(&(htab)->sht_table[empty]))		\
-			break;						\
-	(empty) = (empty) == (htab)->sht_size;				\
-} while (0)
 
 #endif	/* HASHTABLE_H */

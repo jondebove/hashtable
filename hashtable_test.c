@@ -11,7 +11,7 @@ struct entry {
 
 HASH_TABLE(table, entry);
 
-#define hash(k) ((unsigned int)(k * 31))
+#define hash(k) ((unsigned int)k)
 #define equal(e, k) (e->key == k)
 
 int main(void)
@@ -21,24 +21,20 @@ int main(void)
 	unsigned int i;
 	int k;
 
-	unsigned int size = sizeof(struct entry *) * 13;
+	unsigned int size = sizeof(struct entry *) * 5;
 	unsigned char *buffer = malloc(size);
+	HASH_INIT(&ht, buffer, size);				/* Hash table initialization */
 
-	HASH_INIT(&ht, buffer, size);				/* Hash table initialization*/
-
-	HASH_EMPTY(i, &ht);
-	printf("size=%u, empty=%u\n", HASH_SIZE(&ht), i);
-
-	for (i = 1; i < 10; i++) {
+	for (i = 0; i < 10; i++) {
 		e = malloc(sizeof(struct entry));
 		e->key = i * i;
-		HASH_INSERT(&ht, e, hash(e->key), entries);	/* Insertions */
+		HASH_INSERT(&ht, e, hash(e->key), entries);	/* Insertion */
 	}
 
 	HASH_FOREACH(ep, i, &ht, entries)			/* Traversal */
 		ep->val = i;
 
-	k = 36;
+	k = 9;
 	HASH_SEARCH_FOREACH(ep, hash(k), &ht, entries)		/* Search */
 		if (equal(ep, k))
 			break;

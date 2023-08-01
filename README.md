@@ -13,7 +13,7 @@ Both structures support the following functionality:
 - O(1) removal of an entry.
 - Forward traversal through the hash table.
 
-Both use internally the lists implementations of the "sys/queue.h" BSD
+Both use internally the list implementations of the `<sys/queue.h>` BSD
 header file.
 
 ## Interface
@@ -26,9 +26,9 @@ header file.
     void HASH_INIT(HASH_TABLE *htab, void *buffer, unsigned int size);
 
     /* Access */
-    void HASH_EMPTY(unsigned int empty, HASH_TABLE *htab);
     void *HASH_BUFFER(HASH_TABLE *htab);
     unsigned int HASH_SIZE(HASH_TABLE *htab);
+    unsigned int HASH_HASH(struct TYPE *elm, HASH_ENTRY NAME);
 
     /* Insertion */
     void HASH_INSERT(HASH_TABLE *htab, struct TYPE *elm,
