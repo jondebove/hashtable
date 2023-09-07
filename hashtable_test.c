@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -21,9 +22,10 @@ int main(void)
 	unsigned int i;
 	int k;
 
-	unsigned int size = sizeof(struct entry *) * 5;
-	unsigned char *buffer = malloc(size);
+	unsigned int size = sizeof(struct entry *) * (1U << 3);
+	void *buffer = malloc(size);
 	HASH_INIT(&ht, buffer, size);				/* Hash table initialization */
+	assert(HASH_SIZE(&ht) == 8);
 
 	for (i = 0; i < 10; i++) {
 		e = malloc(sizeof(struct entry));
