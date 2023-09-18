@@ -23,10 +23,11 @@ header file.
     /* Creation */
     HASH_ENTRY(TYPE);
     HASH_TABLE(TABLENAME, TYPE);
-    void HASH_INIT(HASH_TABLE *htab, void *buffer, unsigned int size);
+    unsigned int HASH_TABLE_SIZE(TABLENAME, unsigned int shift);
+    void HASH_INIT(HASH_TABLE *htab, unsigned int shift);
 
     /* Access */
-    void *HASH_BUFFER(HASH_TABLE *htab);
+    unsigned int HASH_SHIFT(HASH_TABLE *htab);
     unsigned int HASH_SIZE(HASH_TABLE *htab);
     unsigned int HASH_HASH(struct TYPE *elm, HASH_ENTRY NAME);
 
@@ -64,8 +65,10 @@ must be declared using the macro `HASH_TABLE()`.
 ### Creation
 
 The macros do not allocate memory for the entries or the hash table.
-The user must handle the memory (alloc and free) and provide a memory
-buffer for the hash table using the macro `HASH_INIT()`.
+The user must provide a memory buffer for the hash table and initialize
+it with the macro `HASH_INIT()`.
+A suitable memory size may be obtained using the macro
+`HASH_TABLE_SIZE()`.
 
 To change the size of the hash table, a new one shall be created and
 the entries moved with the macro `HASH_MOVE()`.

@@ -33,16 +33,16 @@
 #include <sys/queue.h>
 
 #if UINT_MAX == 0xffffU
-#	define HASH_MULT 0x9e3bU
+#	define HASH_MULT 0x93b5U
 #	define HASH_BITS 16U
 #elif UINT_MAX == 0xffffffffU
-#	define HASH_MULT 0x9e3779b1U
+#	define HASH_MULT 0x93c467e3U
 #	define HASH_BITS 32U
 #elif UINT_MAX == 0xffffffffffffffffU
-#	define HASH_MULT 0x9e3779b97f4a7c55U
+#	define HASH_MULT 0x93c467e37db0c7a3U
 #	define HASH_BITS 64U
 #else
-#	error "Word size different from 16, 32 or 64 not implemented."
+#	error UINT_WIDTH different from 16, 32 or 64 not implemented.
 #endif
 
 /*
@@ -50,8 +50,8 @@
  */
 #define HASH_TABLE(name, type)						\
 struct name {								\
-	LIST_HEAD(, type) *ht_table;					\
 	unsigned int ht_shift;						\
+	LIST_HEAD(, type) ht_table[];					\
 }
 
 #define HASH_ENTRY(type)						\
@@ -63,15 +63,13 @@ struct {								\
 /*
  * Hash table functions.
  */
-#define HASH_INIT(htab, buffer, size) do {				\
-	(htab)->ht_shift = 0;						\
-	unsigned int h__idx = (size) / sizeof(*(htab)->ht_table);	\
-	while ((h__idx >>= 1)) (htab)->ht_shift++;			\
-	if ((htab)->ht_shift == 0) {					\
-		(htab)->ht_table = NULL;				\
-		break;							\
-	}								\
-	(htab)->ht_table = (void *)(buffer);				\
+#define HASH_TABLE_SIZE(name, shift)					\
+	(sizeof(struct name) + (1U << (shift)) *			\
+	 sizeof(&((struct name *)0)->ht_table[0]))
+
+#define HASH_INIT(htab, shift) do {					\
+	(htab)->ht_shift = (shift);					\
+	unsigned int h__idx;						\
 	for (h__idx = 0; h__idx < 1U << (htab)->ht_shift; h__idx++)	\
 		LIST_INIT(&(htab)->ht_table[h__idx]);			\
 } while (0)
@@ -106,7 +104,8 @@ struct {								\
  */
 #define HASH_FOREACH(var, idx, htab, field)				\
 	for ((idx) = 0;	(idx) < 1U << (htab)->ht_shift; (idx)++)	\
-	LIST_FOREACH((var), &(htab)->ht_table[idx], field.he_list)
+		LIST_FOREACH((var), &(htab)->ht_table[idx],		\
+				field.he_list)
 
 #define HASH_SEARCH_FOREACH(var, hash, htab, field)			\
 	for (unsigned int h__hash = (hash),				\
@@ -139,7 +138,7 @@ struct {								\
 /*
  * Hash table access methods.
  */
-#define HASH_BUFFER(htab) ((void *)(htab)->ht_table)
+#define HASH_SHIFT(htab) ((htab)->ht_shift)
 
 #define HASH_SIZE(htab) (1U << (htab)->ht_shift)
 
@@ -148,10 +147,14 @@ struct {								\
 /*
  * Simple Hash table definitions.
  */
+#define SHASH_TABLE_SIZE(name, shift)					\
+	(sizeof(struct name) + (1U << (shift)) *			\
+	 sizeof(&((struct name *)0)->sht_table[0]))
+
 #define SHASH_TABLE(name, type)						\
 struct name {								\
-	SLIST_HEAD(, type) *sht_table;					\
-	unsigned char sht_shift;					\
+	unsigned int sht_shift;						\
+	SLIST_HEAD(, type) sht_table[];					\
 }
 
 #define SHASH_ENTRY(type)						\
@@ -163,15 +166,9 @@ struct {								\
 /*
  * Simple hash table functions.
  */
-#define SHASH_INIT(htab, buffer, size) do {				\
-	(htab)->sht_shift = 0;						\
-	unsigned int h__idx = (size) / sizeof(*(htab)->sht_table);	\
-	while ((h__idx >>= 1)) (htab)->sht_shift++;			\
-	if ((htab)->sht_shift == 0) {					\
-		(htab)->sht_table = NULL;				\
-		break;							\
-	}								\
-	(htab)->sht_table = (void *)(buffer);				\
+#define SHASH_INIT(htab, shift) do {					\
+	(htab)->sht_shift = (shift);					\
+	unsigned int h__idx;						\
 	for (h__idx = 0; h__idx < 1U << (htab)->sht_shift; h__idx++)	\
 		SLIST_INIT(&(htab)->sht_table[h__idx]);			\
 } while (0)
@@ -209,7 +206,8 @@ struct {								\
  */
 #define SHASH_FOREACH(var, idx, htab, field)				\
 	for ((idx) = 0;	(idx) < 1U << (htab)->sht_shift; (idx)++)	\
-	SLIST_FOREACH((var), &(htab)->sht_table[idx], field.she_list)
+		SLIST_FOREACH((var), &(htab)->sht_table[idx],		\
+				field.she_list)
 
 #define SHASH_SEARCH_FOREACH(var, hash, htab, field)			\
 	for (unsigned int sh__hash = (hash),				\
@@ -242,7 +240,7 @@ struct {								\
 /*
  * Simple hash table access methods.
  */
-#define SHASH_BUFFER(htab) ((void *)(htab)->sht_table)
+#define SHASH_SHIFT(htab) ((htab)->sht_shift)
 
 #define SHASH_SIZE(htab) (1U << (htab)->sht_shift)
 
