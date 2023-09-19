@@ -22,7 +22,8 @@ int main(void)
 	int k;
 
 	unsigned int shift = 3;
-	struct table *ht = malloc(HASH_TABLE_SIZE(table, shift));
+	struct table *ht;					/* Hash table */
+	ht = malloc(HASH_TABLE_SIZE(table, shift));
 	HASH_INIT(ht, shift);					/* Initialization */
 	assert(HASH_SIZE(ht) == 8);
 

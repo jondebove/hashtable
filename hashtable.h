@@ -147,10 +147,6 @@ struct {								\
 /*
  * Simple Hash table definitions.
  */
-#define SHASH_TABLE_SIZE(name, shift)					\
-	(sizeof(struct name) + (1U << (shift)) *			\
-	 sizeof(&((struct name *)0)->sht_table[0]))
-
 #define SHASH_TABLE(name, type)						\
 struct name {								\
 	unsigned int sht_shift;						\
@@ -166,11 +162,15 @@ struct {								\
 /*
  * Simple hash table functions.
  */
+#define SHASH_TABLE_SIZE(name, shift)					\
+	(sizeof(struct name) + (1U << (shift)) *			\
+	 sizeof(&((struct name *)0)->sht_table[0]))
+
 #define SHASH_INIT(htab, shift) do {					\
 	(htab)->sht_shift = (shift);					\
-	unsigned int h__idx;						\
-	for (h__idx = 0; h__idx < 1U << (htab)->sht_shift; h__idx++)	\
-		SLIST_INIT(&(htab)->sht_table[h__idx]);			\
+	unsigned int sh__idx;						\
+	for (sh__idx = 0; sh__idx < 1U << (htab)->sht_shift; sh__idx++)	\
+		SLIST_INIT(&(htab)->sht_table[sh__idx]);		\
 } while (0)
 
 #define SHASH_INDEX(htab, hash) ((unsigned int)				\
