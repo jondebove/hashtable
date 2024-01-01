@@ -1,8 +1,13 @@
+.POSIX:
 
-CFLAGS = -std=c99 -O2 -Wall -Wextra
+CFLAGS = -Wall -Wextra
+TESTS = hashtable_test
+
+.PHONY: all clean
+
+all: $(TESTS)
 
 hashtable_test: hashtable_test.c hashtable.h
 
-.PHONY: clean
 clean:
-	-$(RM) hashtable_test
+	-rm -f $(TESTS)
