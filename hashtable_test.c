@@ -30,11 +30,9 @@ int main(void)
 	for (i = 0; i < 10; i++) {
 		e = malloc(sizeof(struct entry));
 		e->key = i * i;
+		e->val = i;
 		HASH_INSERT(ht, e, hash(e->key), entries);	/* Insertion */
 	}
-
-	HASH_FOREACH(ep, i, ht, entries)			/* Traversal */
-		ep->val = i;
 
 	k = 9;
 	HASH_SEARCH_FOREACH(ep, hash(k), ht, entries)		/* Search */
@@ -46,10 +44,10 @@ int main(void)
 		free(ep);
 	}
 
-	HASH_FOREACH(ep, i, ht, entries)			/* Traversal */
+	HASH_FOREACH(ep, ht, entries)				/* Traversal */
 		printf("key=%d, val=%d\n", ep->key, ep->val);
 
-	HASH_FOREACH_SAFE(ep, i, ht, entries, e)		/* Hash table deletion */
+	HASH_FOREACH_SAFE(ep, ht, entries, e)			/* Hash table deletion */
 		free(ep);
 	free(ht);
 

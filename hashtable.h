@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  * 
- * Copyright (c) 2023, Jonathan Debove
+ * Copyright (c) 2023-2025, Jonathan Debove
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -78,9 +78,8 @@ struct {								\
 	(((hash) * HASH_MULT) >> (HASH_BITS - (htab)->ht_shift)))
 
 #define HASH_MOVE(hdst, hsrc, type, field) do {				\
-	unsigned int h__idx;						\
 	struct type *h__elm, *h__nxt;					\
-	HASH_FOREACH_SAFE(h__elm, h__idx, (hsrc), field, h__nxt) {	\
+	HASH_FOREACH_SAFE(h__elm, (hsrc), field, h__nxt) {		\
 		HASH_REMOVE(h__elm, field);				\
 		HASH_INSERT((hdst), h__elm,				\
 				h__elm->field.he_hash, field);		\
@@ -102,9 +101,10 @@ struct {								\
 /*
  * Hash table for loops.
  */
-#define HASH_FOREACH(var, idx, htab, field)				\
-	for ((idx) = 0;	(idx) < 1U << (htab)->ht_shift; (idx)++)	\
-		LIST_FOREACH((var), &(htab)->ht_table[idx],		\
+#define HASH_FOREACH(var, htab, field)					\
+	for (unsigned int h__idx = 0;					\
+			h__idx < 1U << (htab)->ht_shift; h__idx++)	\
+		LIST_FOREACH((var), &(htab)->ht_table[h__idx],		\
 				field.he_list)
 
 #define HASH_SEARCH_FOREACH(var, hash, htab, field)			\
@@ -122,9 +122,10 @@ struct {								\
 			(var) = (nxt))
 #endif /* LIST_FOREACH_SAFE */
 
-#define HASH_FOREACH_SAFE(var, idx, htab, field, nxt)			\
-	for ((idx) = 0; (idx) < 1U << (htab)->ht_shift; (idx)++)	\
-		LIST_FOREACH_SAFE((var), &(htab)->ht_table[idx],	\
+#define HASH_FOREACH_SAFE(var, htab, field, nxt)			\
+	for (unsigned int h__idx = 0;					\
+			h__idx < 1U << (htab)->ht_shift; h__idx++)	\
+		LIST_FOREACH_SAFE((var), &(htab)->ht_table[h__idx],	\
 				field.he_list, (nxt))
 
 #define HASH_SEARCH_FOREACH_SAFE(var, hash, htab, field, nxt)		\
@@ -145,7 +146,7 @@ struct {								\
 #define HASH_HASH(elm, field) ((elm)->field.he_hash)
 
 /*
- * Simple Hash table definitions.
+ * Simple hash table definitions.
  */
 #define SHASH_TABLE(name, type)						\
 struct name {								\
@@ -177,9 +178,8 @@ struct {								\
 	(((hash) * HASH_MULT) >> (HASH_BITS - (htab)->sht_shift)))
 
 #define SHASH_MOVE(hdst, hsrc, type, field) do {			\
-	unsigned int sh__idx;						\
 	struct type *sh__elm, *sh__nxt;					\
-	SHASH_FOREACH_SAFE(sh__elm, sh__idx, (hsrc), field, sh__nxt) {	\
+	SHASH_FOREACH_SAFE(sh__elm, (hsrc), field, sh__nxt) {		\
 		SHASH_REMOVE((hsrc), sh__elm, type, field);		\
 		SHASH_INSERT((hdst), sh__elm,				\
 				sh__elm->field.she_hash, field);	\
@@ -204,9 +204,10 @@ struct {								\
 /*
  * Simple hash table for loops.
  */
-#define SHASH_FOREACH(var, idx, htab, field)				\
-	for ((idx) = 0;	(idx) < 1U << (htab)->sht_shift; (idx)++)	\
-		SLIST_FOREACH((var), &(htab)->sht_table[idx],		\
+#define SHASH_FOREACH(var, htab, field)					\
+	for (unsigned int sh__idx = 0;					\
+			sh__idx < 1U << (htab)->sht_shift; sh__idx++)	\
+		SLIST_FOREACH((var), &(htab)->sht_table[sh__idx],	\
 				field.she_list)
 
 #define SHASH_SEARCH_FOREACH(var, hash, htab, field)			\
@@ -224,9 +225,10 @@ struct {								\
 			(var) = (nxt))
 #endif /* SLIST_FOREACH_SAFE */
 
-#define SHASH_FOREACH_SAFE(var, idx, htab, field, nxt)			\
-	for ((idx) = 0; (idx) < 1U << (htab)->sht_shift; (idx)++)	\
-		SLIST_FOREACH_SAFE((var), &(htab)->sht_table[idx],	\
+#define SHASH_FOREACH_SAFE(var, htab, field, nxt)			\
+	for (unsigned int sh__idx = 0;					\
+			sh__idx < 1U << (htab)->sht_shift; sh__idx++)	\
+		SLIST_FOREACH_SAFE((var), &(htab)->sht_table[sh__idx],	\
 				field.she_list, (nxt))
 
 #define SHASH_SEARCH_FOREACH_SAFE(var, hash, htab, field, nxt)		\

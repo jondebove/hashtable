@@ -37,10 +37,9 @@ header file.
     void HASH_MOVE(HASH_TABLE *dst, HASH_TABLE *src, TYPE, HASH_ENTRY NAME);
 
     /* Traversal */
-    HASH_FOREACH(struct TYPE *var, unsigned int idx,
-                    HASH_TABLE *htab, HASH_ENTRY NAME);
-    HASH_FOREACH_SAFE(struct TYPE *var, unsigned int idx,
-                    HASH_TABLE *htab, HASH_ENTRY NAME, struct TYPE *nxt);
+    HASH_FOREACH(struct TYPE *var, HASH_TABLE *htab, HASH_ENTRY NAME);
+    HASH_FOREACH_SAFE(struct TYPE *var, HASH_TABLE *htab,
+                    HASH_ENTRY NAME, struct TYPE *nxt);
 
     HASH_SEARCH_FOREACH(struct TYPE *var, unsigned int hash,
                     HASH_TABLE *htab, HASH_ENTRY NAME);
