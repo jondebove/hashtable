@@ -70,12 +70,12 @@ struct {								\
 #define HASH_INIT(htab, shift) do {					\
 	(htab)->ht_shift = (shift);					\
 	unsigned int h__idx;						\
-	for (h__idx = 0; h__idx < 1U << (htab)->ht_shift; h__idx++)	\
+	for (h__idx = 0; h__idx < HASH_SIZE(htab); h__idx++)		\
 		LIST_INIT(&(htab)->ht_table[h__idx]);			\
 } while (0)
 
 #define HASH_INDEX(htab, hash) ((unsigned int)				\
-	(((hash) * HASH_MULT) >> (HASH_BITS - (htab)->ht_shift)))
+	(((hash) * HASH_MULT) >> (HASH_BITS - HASH_SHIFT(htab))))
 
 #define HASH_MOVE(hdst, hsrc, type, field) do {				\
 	struct type *h__elm, *h__nxt;					\
@@ -103,7 +103,7 @@ struct {								\
  */
 #define HASH_FOREACH(var, htab, field)					\
 	for (unsigned int h__idx = 0;					\
-			h__idx < 1U << (htab)->ht_shift; h__idx++)	\
+			h__idx < HASH_SIZE(htab); h__idx++)		\
 		LIST_FOREACH((var), &(htab)->ht_table[h__idx],		\
 				field.he_list)
 
@@ -124,7 +124,7 @@ struct {								\
 
 #define HASH_FOREACH_SAFE(var, htab, field, nxt)			\
 	for (unsigned int h__idx = 0;					\
-			h__idx < 1U << (htab)->ht_shift; h__idx++)	\
+			h__idx < HASH_SIZE(htab); h__idx++)		\
 		LIST_FOREACH_SAFE((var), &(htab)->ht_table[h__idx],	\
 				field.he_list, (nxt))
 
@@ -170,12 +170,12 @@ struct {								\
 #define SHASH_INIT(htab, shift) do {					\
 	(htab)->sht_shift = (shift);					\
 	unsigned int sh__idx;						\
-	for (sh__idx = 0; sh__idx < 1U << (htab)->sht_shift; sh__idx++)	\
+	for (sh__idx = 0; sh__idx < SHASH_SIZE(htab); sh__idx++)	\
 		SLIST_INIT(&(htab)->sht_table[sh__idx]);		\
 } while (0)
 
 #define SHASH_INDEX(htab, hash) ((unsigned int)				\
-	(((hash) * HASH_MULT) >> (HASH_BITS - (htab)->sht_shift)))
+	(((hash) * HASH_MULT) >> (HASH_BITS - SHASH_SHIFT(htab))))
 
 #define SHASH_MOVE(hdst, hsrc, type, field) do {			\
 	struct type *sh__elm, *sh__nxt;					\
@@ -206,7 +206,7 @@ struct {								\
  */
 #define SHASH_FOREACH(var, htab, field)					\
 	for (unsigned int sh__idx = 0;					\
-			sh__idx < 1U << (htab)->sht_shift; sh__idx++)	\
+			sh__idx < SHASH_SIZE(htab); sh__idx++)		\
 		SLIST_FOREACH((var), &(htab)->sht_table[sh__idx],	\
 				field.she_list)
 
@@ -227,7 +227,7 @@ struct {								\
 
 #define SHASH_FOREACH_SAFE(var, htab, field, nxt)			\
 	for (unsigned int sh__idx = 0;					\
-			sh__idx < 1U << (htab)->sht_shift; sh__idx++)	\
+			sh__idx < SHASH_SIZE(htab); sh__idx++)		\
 		SLIST_FOREACH_SAFE((var), &(htab)->sht_table[sh__idx],	\
 				field.she_list, (nxt))
 
