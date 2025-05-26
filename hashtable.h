@@ -56,8 +56,8 @@ struct name {								\
 
 #define HASH_ENTRY(type)						\
 struct {								\
-	LIST_ENTRY(type) he_list;					\
 	unsigned int he_hash;						\
+	LIST_ENTRY(type) he_list;					\
 }
 
 /*
@@ -65,7 +65,7 @@ struct {								\
  */
 #define HASH_TABLE_SIZE(name, shift)					\
 	(sizeof(struct name) + (1U << (shift)) *			\
-	 sizeof(&((struct name *)0)->ht_table[0]))
+	 sizeof(((struct name *)0)->ht_table[0]))
 
 #define HASH_INIT(htab, shift) do {					\
 	(htab)->ht_shift = (shift);					\
@@ -153,8 +153,8 @@ struct name {								\
 
 #define SHASH_ENTRY(type)						\
 struct {								\
-	SLIST_ENTRY(type) she_list;					\
 	unsigned int she_hash;						\
+	SLIST_ENTRY(type) she_list;					\
 }
 
 /*
@@ -162,7 +162,7 @@ struct {								\
  */
 #define SHASH_TABLE_SIZE(name, shift)					\
 	(sizeof(struct name) + (1U << (shift)) *			\
-	 sizeof(&((struct name *)0)->sht_table[0]))
+	 sizeof(((struct name *)0)->sht_table[0]))
 
 #define SHASH_INIT(htab, shift) do {					\
 	(htab)->sht_shift = (shift);					\
