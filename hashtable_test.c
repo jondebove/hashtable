@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,49 +6,61 @@
 struct entry {
 	int key;
 	int val;
-	HASH_ENTRY(entry) entries;
+	struct hashnode node;
 };
-
-HASH_TABLE(table, entry);
-
-#define hash(k) ((unsigned int)k)
-#define equal(e, k) (e->key == k)
+#define hash(k) ((uint64_t)(k))
 
 int main(void)
 {
-	struct entry *e, *ep;
-	unsigned int i;
-	int k;
+	struct entry *e;
+	int i, k;
 
-	unsigned int shift = 3;
-	struct table *ht;					/* Hash table */
-	ht = malloc(HASH_TABLE_SIZE(table, shift));
-	HASH_INIT(ht, shift);					/* Initialization */
-	assert(HASH_SIZE(ht) == 8);
+	/* Hash table */
+	struct hashtable ht;
 
+	/* Initialization */
+	struct hashnode *nodes[32];
+	if (!hashtable_init(&ht, 32, nodes)) {
+		fprintf(stderr, "error while initializing hashtable\n");
+		return EXIT_FAILURE;
+	}
+
+	/* Insertion */
 	for (i = 0; i < 10; i++) {
-		e = malloc(sizeof(struct entry));
+		e = malloc(sizeof(*e));
 		e->key = i * i;
 		e->val = i;
-		HASH_INSERT(ht, e, hash(e->key), entries);	/* Insertion */
+		hashtable_insert(&ht, &e->node, hash(e->key));
 	}
 
+	/* Search */
+	struct hashnode *hn;
 	k = 9;
-	HASH_SEARCH_FOREACH(ep, hash(k), ht, entries)		/* Search */
-		if (equal(ep, k))
+	for (hn = hashtable_first(&ht, hash(k)); hn; hn = hashtable_next(hn)) {
+		e = HASH_CONTAINEROF(hn, struct entry, node);
+		if (e->key == k) {
 			break;
-
-	if (ep) {
-		HASH_REMOVE(ep, entries);			/* Deletion */
-		free(ep);
+		}
 	}
 
-	HASH_FOREACH(ep, ht, entries)				/* Traversal */
-		printf("key=%d, val=%d\n", ep->key, ep->val);
+	/* Deletion */
+	if (hn) {
+		hashtable_remove(&ht, hn, k);
+		free(e);
+	}
 
-	HASH_FOREACH_SAFE(ep, ht, entries, e)			/* Hash table deletion */
-		free(ep);
-	free(ht);
+	/* Traversal */
+	struct hashiter hi;
+	for (hn = hashiter_first(&hi, &ht); hn; hn = hashiter_next(&hi)) {
+		e = HASH_CONTAINEROF(hn, struct entry, node);
+		printf("key=%d, val=%d\n", e->key, e->val);
+	}
+
+	/* Hash table deletion */
+	for (hn = hashiter_first(&hi, &ht); hn; hn = hashiter_next(&hi)) {
+		e = HASH_CONTAINEROF(hn, struct entry, node);
+		free(e);
+	}
 
 	return EXIT_SUCCESS;
 }
