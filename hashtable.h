@@ -39,33 +39,30 @@ struct hashnode {
 struct hashtable {
 	int bits;
 	size_t count;
-	struct hashnode **table;
+	struct hashnode *table;
 };
 
 struct hashiter {
-	struct hashnode *const *base;
-	struct hashnode *const *head;
+	struct hashnode *base;
+	struct hashnode *head;
 	struct hashnode *next;
 };
 
 static inline
 struct hashtable *hashtable_init(struct hashtable *ht,
-		size_t n, struct hashnode *table[static n])
+		size_t n, struct hashnode table[static n])
 {
 	if (n < 2) return NULL;
 
 	for (ht->bits = 0; (n >>= 1); ht->bits++);
 	ht->count = 0;
-	for (n = ((size_t)1 << ht->bits); n--; ) table[n] = NULL;
+	for (n = ((size_t)1 << ht->bits); n--; ) table[n].next = NULL;
 	ht->table = table;
 	return ht;
 }
 
-#define HASH_CONTAINEROF(ptr, type, field) \
-	((type *)((char *)(ptr) - offsetof(type, field)))
-
 static inline
-struct hashnode **hashtable_head(struct hashtable const *ht, uint64_t hash)
+struct hashnode *hashtable_head(struct hashtable const *ht, uint64_t hash)
 {
 	return &ht->table[(hash * 0x93c467e37db0c7a3U) >> (64 - ht->bits)];
 }
@@ -73,37 +70,35 @@ struct hashnode **hashtable_head(struct hashtable const *ht, uint64_t hash)
 static inline
 struct hashnode *hashtable_first(struct hashtable const *ht, uint64_t hash)
 {
-	return *hashtable_head(ht, hash);
-}
-
-static inline
-struct hashnode *hashtable_next(struct hashnode const *hn)
-{
-	return hn->next;
+	return hashtable_head(ht, hash)->next;
 }
 
 static inline
 void hashtable_insert(struct hashtable *ht, struct hashnode *hn, uint64_t hash)
 {
-	struct hashnode **head = hashtable_head(ht, hash);
-	hn->next = *head;
-	*head = hn;
+	struct hashnode *head = hashtable_head(ht, hash);
+	hn->next = head->next;
+	head->next = hn;
 	ht->count++;
+}
+
+static inline
+struct hashnode *hashtable_removenext(struct hashtable *ht, struct hashnode *prev)
+{
+	struct hashnode *n = prev->next;
+	if (n) {
+		prev->next = n->next;
+		ht->count--;
+	}
+	return n;
 }
 
 static inline
 void hashtable_remove(struct hashtable *ht, struct hashnode *hn, uint64_t hash)
 {
-	struct hashnode **head = hashtable_head(ht, hash);
-	struct hashnode *n = *head;
-	assert(n);
-	if (n == hn) {
-		(*head) = hn->next;
-	} else {
-		for (; n->next != hn; n = n->next) assert(n);
-		n->next = hn->next;
-	}
-	ht->count--;
+	struct hashnode *p = hashtable_head(ht, hash);
+	for (; p->next != hn; p = p->next) assert(p);
+	hashtable_removenext(ht, p);
 }
 
 static inline
@@ -112,7 +107,7 @@ struct hashnode *hashiter_next(struct hashiter *hi)
 	struct hashnode *hn = hi->next;
 	if (hn) {
 		for (hi->next = hn->next; !hi->next && hi->head != hi->base;
-				hi->next = *(--hi->head));
+				hi->next = (--hi->head)->next);
 	}
 	return hn;
 }
@@ -124,7 +119,7 @@ struct hashnode *hashiter_first(struct hashiter *hi, struct hashtable const *ht)
 	hi->base = ht->table;
 	for (hi->head = hi->base + ((size_t)1 << ht->bits);
 			!hi->next && hi->head != hi->base;
-			hi->next = *(--hi->head));
+			hi->next = (--hi->head)->next);
 	return hashiter_next(hi);
 }
 

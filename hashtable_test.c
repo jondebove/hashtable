@@ -9,6 +9,8 @@ struct entry {
 	struct hashnode node;
 };
 #define hash(k) ((uint64_t)(k))
+#define entry_of(ptr) \
+	((struct entry *)((char *)(ptr) - offsetof(struct entry, node)))
 
 int main(void)
 {
@@ -19,8 +21,8 @@ int main(void)
 	struct hashtable ht;
 
 	/* Initialization */
-	struct hashnode *nodes[32];
-	if (!hashtable_init(&ht, 32, nodes)) {
+	struct hashnode buckets[32];
+	if (!hashtable_init(&ht, 32, buckets)) {
 		fprintf(stderr, "error while initializing hashtable\n");
 		return EXIT_FAILURE;
 	}
@@ -36,8 +38,8 @@ int main(void)
 	/* Search */
 	struct hashnode *hn;
 	k = 9;
-	for (hn = hashtable_first(&ht, hash(k)); hn; hn = hashtable_next(hn)) {
-		e = HASH_CONTAINEROF(hn, struct entry, node);
+	for (hn = hashtable_first(&ht, hash(k)); hn; hn = hn->next) {
+		e = entry_of(hn);
 		if (e->key == k) {
 			break;
 		}
@@ -52,14 +54,13 @@ int main(void)
 	/* Traversal */
 	struct hashiter hi;
 	for (hn = hashiter_first(&hi, &ht); hn; hn = hashiter_next(&hi)) {
-		e = HASH_CONTAINEROF(hn, struct entry, node);
+		e = entry_of(hn);
 		printf("key=%d, val=%d\n", e->key, e->val);
 	}
 
 	/* Hash table deletion */
 	for (hn = hashiter_first(&hi, &ht); hn; hn = hashiter_next(&hi)) {
-		e = HASH_CONTAINEROF(hn, struct entry, node);
-		free(e);
+		free(entry_of(hn));
 	}
 
 	return EXIT_SUCCESS;
