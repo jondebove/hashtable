@@ -83,22 +83,12 @@ void hashtable_insert(struct hashtable *ht, struct hashnode *hn, uint64_t hash)
 }
 
 static inline
-struct hashnode *hashtable_removenext(struct hashtable *ht, struct hashnode *prev)
-{
-	struct hashnode *n = prev->next;
-	if (n) {
-		prev->next = n->next;
-		ht->count--;
-	}
-	return n;
-}
-
-static inline
 void hashtable_remove(struct hashtable *ht, struct hashnode *hn, uint64_t hash)
 {
 	struct hashnode *p = hashtable_head(ht, hash);
-	for (; p->next != hn; p = p->next) assert(p);
-	hashtable_removenext(ht, p);
+	for (; p->next != hn; p = p->next) assert(p->next);
+	p->next = hn->next;
+	ht->count--;
 }
 
 static inline

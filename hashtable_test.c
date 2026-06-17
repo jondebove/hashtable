@@ -8,7 +8,7 @@ struct entry {
 	int val;
 	struct hashnode node;
 };
-#define hash(k) ((uint64_t)(k))
+#define hash(k) ((uint64_t)(k) * 11)
 #define entry_of(ptr) \
 	((struct entry *)((char *)(ptr) - offsetof(struct entry, node)))
 
@@ -47,7 +47,7 @@ int main(void)
 
 	/* Deletion */
 	if (hn) {
-		hashtable_remove(&ht, hn, k);
+		hashtable_remove(&ht, hn, hash(k));
 		free(e);
 	}
 
